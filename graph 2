@@ -1,0 +1,96 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from statsmodels.nonparametric.smoothers_lowess import lowess
+
+# rangos
+bins = np.arange(500000, 1500001, 10000)
+umbral_principal = 1000000  # Umbral principal
+
+# Posición de umbrales
+umbrales_por_año = {
+    2008: {'izquierda': 1, 'derecha': 4},
+    2009: {'izquierda': 4, 'derecha': 9},
+    2010: {'izquierda': 6, 'derecha': 2},
+    2011: {'izquierda': 2, 'derecha': 6},
+    2012: {'izquierda': 2, 'derecha': 5}
+}
+
+# (3 filas, 2 columnas)
+fig, axes = plt.subplots(3, 2, figsize=(18, 15))
+axes = axes.flatten()
+
+# Gráficas para cada año
+for idx, year in enumerate(range(2008, 2013)):
+    patr_column = f'PATR_L_{year}'  # Nombre de la columna de patrimonio líquido por año
+
+    # Filtro valores dentro del rango
+    df_filtered = df_merged_final2[(df_merged_final2[patr_column] >= 500000) &
+                                   (df_merged_final2[patr_column] <= 1500000)]
+
+    # Graficar en el eje correspondiente
+    ax = axes[idx]
+
+    # valores del histograma para la línea de tendencia
+    counts, bin_edges = np.histogram(df_filtered[patr_column], bins=bins)
+
+    # centros de las barras
+    bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+
+    # Identificar los índices de los bins excluidos
+    bin_width = bin_edges[1] - bin_edges[0]
+    umbral_idx = np.digitize(umbral_principal, bin_centers)
+    
+    # Obtener los valores de "izquierda" y "derecha" según el año
+    exclude_left = umbral_idx - umbrales_por_año[year]['izquierda']  # Ajuste dinámico para cada año
+    exclude_right = umbral_idx + umbrales_por_año[year]['derecha']  # Ajuste dinámico para cada año
+
+    # Crear la máscara de exclusión
+    exclude_mask = np.zeros_like(bin_centers, dtype=bool)
+    exclude_mask[exclude_left:exclude_right + 1] = True
+
+    # Ajuste de regresión con exclusión de bins
+    X = np.column_stack([bin_centers**i for i in range(1, 6)])  # Polinomio de grado 5
+    y = counts
+
+    X_included = X[~exclude_mask]
+    y_included = y[~exclude_mask]
+
+    reg = LinearRegression().fit(X_included, y_included)
+    counterfactual = reg.predict(X)
+
+    # Graficar la línea de tendencia
+    ax.plot(bin_centers, counts, color='#444444', marker='.', linestyle='-', linewidth=1.5, markersize=6, label="Línea de Tendencia")
+
+    # Graficar la línea de distribución contrafactual (ajustada)
+    ax.plot(bin_centers, counterfactual, color='blue', linestyle='-', linewidth=2, label="Distribución Contrafactual", alpha=0.5)
+
+
+    umbral_izquierda = bin_centers[exclude_left]
+    umbral_derecha = bin_centers[exclude_right]
+
+    # mostrar las líneas verticales para los umbrales
+    ax.axvline(x=umbral_principal, color='red', linestyle='--', linewidth=2.5, alpha=0.7, label=f"Umbral Principal: {int(umbral_principal / 1000)}M")
+    ax.axvline(x=umbral_izquierda, color='grey', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^l$: {int(umbral_izquierda / 1000)}M")
+    ax.axvline(x=umbral_derecha, color='grey', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^n$: {int(umbral_derecha / 1000)}M")
+
+    # Título, etiquetas y leyenda
+    ax.set_title(f"Distribución de Firmas - Año {year}", fontsize=14, fontweight='bold')
+    ax.set_xlabel("Patrimonio Líquido (Millones de pesos COP)", fontsize=12)
+    ax.set_ylabel("Concentración de Firmas", fontsize=12)
+
+    # Etiquetas del eje X
+    ax.set_xticks(np.arange(500000, 1500001, 100000))
+    ax.set_xticklabels([f"{i}M" for i in range(500, 1501, 100)])
+
+    # Añadir leyenda
+    ax.legend()
+
+    # Cuadrícula para mejorar visualización
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+# Eliminar la última subgráfica vacía (6ta posición)
+axes[-1].axis('off')
+
+plt.tight_layout()
+plt.show()
