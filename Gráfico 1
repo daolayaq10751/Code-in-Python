@@ -1,0 +1,39 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Parámetros globales
+bins = np.arange(500000, 1500001, 10000)
+umbral_principal = 1000000
+
+# Función para trazar histogramas individuales
+def trazar_histograma(ax, year, df, bins, umbral_principal):
+    patr_column = f'PATR_L_{year}'
+    df_filtered = df[(df[patr_column] >= 500000) & (df[patr_column] <= 1500000)]
+
+    counts, bin_edges, _ = ax.hist(df_filtered[patr_column], bins=bins, alpha=0.8, color='#666666', edgecolor='black', linewidth=0.5)
+
+    # Líneas verticales para los umbrales
+    ax.axvline(x=umbral_principal, color='#333333', linestyle='--', linewidth=2.5, label=f"Umbral: {int(umbral_principal / 1000)}M")
+
+
+    # Configuración del gráfico
+    ax.set_title(f"Distribución de Firmas - Año {year}", fontsize=14, fontweight='bold')
+    ax.set_xlabel("Patrimonio Líquido (Millones de pesos COP)", fontsize=12)
+    ax.set_ylabel("Concentración de Firmas", fontsize=12)
+    ax.set_xticks(np.arange(500000, 1500001, 100000))
+    ax.set_xticklabels([f"{i}M" for i in range(500, 1501, 100)])
+    ax.legend()
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+# matriz para organizar el conjunto de gráficos
+fig, axes = plt.subplots(3, 2, figsize=(18, 15))
+axes = axes.flatten()
+
+for idx, year in enumerate(range(2008, 2013)):
+    trazar_histograma(axes[idx], year, df_merged_final2, bins, umbral_principal)
+
+# Eliminar el último eje vacío
+axes[-1].axis('off')
+
+plt.tight_layout()
+plt.show()
