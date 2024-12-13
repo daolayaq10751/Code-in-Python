@@ -1,0 +1,114 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+
+# Definir los rangos 
+bins = np.arange(500000, 1500001, 10000) 
+
+# Parámetros clave
+umbral_principal = 1000000 
+dtau = 0.01 
+
+def calcular_masas(df, patr_column, bins, umbral_principal):
+    # Filtrar datos
+    df_filtered = df[(df[patr_column] >= 500000) & (df[patr_column] <= 1500000)]
+
+    # Calcular histogramas y centros de bins
+    counts, bin_edges = np.histogram(df_filtered[patr_column], bins=bins)
+    bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+
+    # Calcular la densidad observada
+    density = counts / np.diff(bin_edges)
+
+    # Identificar índices de bins excluidos
+    bin_width = bin_edges[1] - bin_edges[0]
+    umbral_idx = np.digitize(umbral_principal, bin_centers)
+    exclude_left = umbral_idx - 6  # Excluir 5 bins a la izquierda
+    exclude_right = umbral_idx + 2  # Excluir 2 bins a la derecha
+
+    # Crear una variable para marcar exclusión
+    exclude_mask = np.zeros_like(bin_centers, dtype=bool)
+    exclude_mask[exclude_left:exclude_right + 1] = True
+
+    # Ajuste de regresión con exclusión de bins
+    X = np.column_stack([bin_centers**i for i in range(1, 6)])  # Polinomio de grado 5
+    y = density
+
+    X_included = X[~exclude_mask]
+    y_included = y[~exclude_mask]
+
+    reg = LinearRegression().fit(X_included, y_included)
+    counterfactual = reg.predict(X)
+
+    # Calcular masas excedentes y faltantes
+    extra_density = density - counterfactual
+    B = extra_density[bin_centers < umbral_principal].sum() * bin_width
+    M = extra_density[bin_centers > umbral_principal].sum() * bin_width
+
+    return density, counterfactual, B, M, bin_centers, bin_width, exclude_left, exclude_right, exclude_mask
+
+def calcular_elasticidad(B, M, W_star, tau, dtau):
+    dW_star = B - abs(M)  # Respuesta en la riqueza reportada
+    e_R = ((dW_star / W_star) * ((1 - tau) / dtau))  # Elasticidad revisada
+    return e_R, dW_star
+
+# Parámetros adicionales para el cálculo
+W_star = 1000000  # Aproximación de W*
+tau = 0.01  # Tasa de impuestos inicial del 1%
+
+# Calcular densidades, masas y contrafactual
+patr_column = 'PATR_L_2010'
+density, counterfactual, B, M, bin_centers, bin_width, exclude_left, exclude_right, exclude_mask = calcular_masas(df_merged_final2, patr_column, bins, umbral_principal)
+
+# Estimar elasticidad y respuesta en la riqueza reportada
+e_R, dW_star = calcular_elasticidad(B, M, W_star, tau, dtau)
+
+# Calcular márgenes de error para umbrales
+umbral_izquierda = bin_centers[exclude_left]
+umbral_derecha = bin_centers[exclude_right]
+
+# Márgenes de error
+error_izquierda = np.std(density[:exclude_left])  # Margen de error estimado
+error_derecha = np.std(density[exclude_right + 1:])
+
+# Calcular b y a* de manera segura asegurando que las dimensiones coinciden
+b = B / np.mean(counterfactual[~exclude_mask])  # Media de los valores contrafactuales no excluidos
+a_star = np.mean(density[exclude_mask] < counterfactual[exclude_mask])  # Media de la condición de comparación
+
+# Visualización
+plt.figure(figsize=(10, 6))
+
+# Graficar los dos segmentos separados para la línea de tendencia
+plt.plot(bin_centers[:umbral_idx], density[:umbral_idx], color='#555555', marker='.', linestyle='-', label="Línea de Tendencia Observada")
+plt.plot(bin_centers[umbral_idx:], density[umbral_idx:], color='#555555', marker='.', linestyle='-')
+
+# Graficar la línea de densidad contrafactual
+plt.plot(bin_centers, counterfactual, color='gray', linestyle='-', label="Distribución Contrafactual")
+
+# Umbrales
+plt.axvline(x=umbral_principal, color='red', linestyle='--', linewidth=2.5, alpha=0.7, label=f"Umbral: {int(umbral_principal / 1000)}M")
+plt.axvline(x=umbral_izquierda, color='green', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^n$: {int(umbral_izquierda / 1000)}M ± {error_izquierda:.3f}")
+plt.axvline(x=umbral_derecha, color='orange', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^l$: {int(umbral_derecha / 1000)}M ± {error_derecha:.3f}")
+
+# Tasa impositiva
+plt.text(umbral_principal + 25000, max(density) * 0.9, f"$\\tau$ = {tau*100:.0f}%", color='red', fontsize=12)
+
+# leyendas de la gráfica
+plt.title("Ajuste de la Distribución de Firmas", fontsize=14, fontweight='bold')
+plt.xlabel("Patrimonio Líquido (en miles)", fontsize=12)
+plt.ylabel("Concentración de firmas", fontsize=12)
+plt.xticks(np.arange(500000, 1500001, 100000), [f"{i}M" for i in range(500, 1501, 100)])
+plt.yticks(np.linspace(0, max(density), 6), [f"{int(i)}" for i in np.linspace(0, max(density) * 1000, 6)])
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.text(0.01, 0.02, f"Exceso de masa estimado: {B:.2f}\nFalta de masa estimada: {M:.2f}\nElasticidad estimada: {e_R:.4f}\nCambio en la Riqueza Reportada ($dW^*$): {dW_star:.2f}\nb = {b:.2f}\na* = {a_star:.2f}",
+         transform=plt.gca().transAxes, 
+         ha='left', va='bottom', 
+         bbox=dict(facecolor='white', alpha=0.5))
+
+
+plt.tight_layout()
+plt.show()
+
