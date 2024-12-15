@@ -32,8 +32,9 @@ axes = axes.flatten()
 for idx, year in enumerate(range(2008, 2013)):
     trazar_histograma(axes[idx], year, df_merged_final2, bins, umbral_principal)
 
-# Eliminar el último eje vacío
+# Eliminar último cuadro vacío de la matriz
 axes[-1].axis('off')
 
 plt.tight_layout()
 plt.show()
+
