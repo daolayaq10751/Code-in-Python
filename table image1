@@ -44,7 +44,9 @@ for idx, year in enumerate(range(2008, 2013)):
     for i in range(0, len(all_bin_centers[idx]), 10):
         print(f"    {all_bin_centers[idx][i:i+10]}")
 
-MUESTRA EN PANTALLA
+
+RESULTADOS:
+
 Año 2008:
   Total de firmas en el rango 500M a 1,500M: 4105
   Concentración de firmas en cada bin:
