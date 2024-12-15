@@ -84,7 +84,7 @@ plt.plot(bin_centers[:umbral_idx], density[:umbral_idx], color='#555555', marker
 plt.plot(bin_centers[umbral_idx:], density[umbral_idx:], color='#555555', marker='.', linestyle='-')
 
 # Graficar la línea de densidad contrafactual
-plt.plot(bin_centers, counterfactual, color='gray', linestyle='-', label="Distribución Contrafactual")
+plt.plot(bin_centers, counterfactual, color='blue', linestyle='-', alpha=0.4, label="Distribución Contrafactual")
 
 # Umbrales
 plt.axvline(x=umbral_principal, color='red', linestyle='--', linewidth=2.5, alpha=0.7, label=f"Umbral: {int(umbral_principal / 1000)}M")
@@ -111,4 +111,36 @@ plt.text(0.01, 0.02, f"Exceso de masa estimado: {B:.2f}\nFalta de masa estimada:
 
 plt.tight_layout()
 plt.show()
+
+
+# VALIDACIONES
+print("Media contrafactual:", np.mean(counterfactual[~exclude_mask]))
+print("Exceso de masa (B):", B)
+print("Densidad contrafactual completa:", counterfactual)
+
+
+RESULTADOS:
+Media contrafactual: 0.005443956043956043
+Exceso de masa (B): 202.99875917326452
+Densidad contrafactual completa: [0.00956176 0.00949443 0.00942535 0.00935456 0.00928207 0.0092079
+ 0.00913208 0.00905463 0.00897558 0.00889496 0.00881281 0.00872914
+ 0.008644   0.00855743 0.00846945 0.00838012 0.00828947 0.00819754
+ 0.00810439 0.00801005 0.00791458 0.00781802 0.00772042 0.00762185
+ 0.00752235 0.00742198 0.0073208  0.00721887 0.00711625 0.00701299
+ 0.00690918 0.00680487 0.00670013 0.00659503 0.00648964 0.00638403
+ 0.00627828 0.00617247 0.00606666 0.00596094 0.00585538 0.00575008
+ 0.00564511 0.00554055 0.0054365  0.00533303 0.00523025 0.00512823
+ 0.00502707 0.00492687 0.00482771 0.0047297  0.00463293 0.0045375
+ 0.00444351 0.00435106 0.00426026 0.0041712  0.004084   0.00399876
+ 0.00391559 0.00383459 0.00375589 0.00367959 0.0036058  0.00353465
+ 0.00346624 0.00340069 0.00333812 0.00327866 0.00322242 0.00316952
+ 0.00312009 0.00307425 0.00303213 0.00299386 0.00295956 0.00292937
+ 0.00290341 0.00288181 0.00286472 0.00285225 0.00284456 0.00284177
+ 0.00284402 0.00285145 0.0028642  0.00288241 0.00290623 0.00293579
+ 0.00297124 0.00301272 0.00306038 0.00311437 0.00317484 0.00324193
+ 0.0033158  0.00339659 0.00348446 0.00357956]
+
+
+
+
 
