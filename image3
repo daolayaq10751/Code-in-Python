@@ -95,9 +95,9 @@ plt.axvline(x=umbral_derecha, color='orange', linestyle='--', linewidth=1.5, lab
 plt.text(umbral_principal + 25000, max(density) * 0.9, f"$\\tau$ = {tau*100:.0f}%", color='red', fontsize=12)
 
 # leyendas de la gráfica
-plt.title("Ajuste de la Distribución de Firmas", fontsize=14, fontweight='bold')
-plt.xlabel("Patrimonio Líquido (en miles)", fontsize=12)
-plt.ylabel("Concentración de firmas", fontsize=12)
+plt.title("Análisis Distribución de Firmas (2010)", fontsize=14, fontweight='bold')
+plt.xlabel("Patrimonio Líquido (Millones de pesos COP)", fontsize=12)
+plt.ylabel("Concentración de firmas (Bunching)", fontsize=12)
 plt.xticks(np.arange(500000, 1500001, 100000), [f"{i}M" for i in range(500, 1501, 100)])
 plt.yticks(np.linspace(0, max(density), 6), [f"{int(i)}" for i in np.linspace(0, max(density) * 1000, 6)])
 plt.legend()
@@ -111,6 +111,7 @@ plt.text(0.01, 0.02, f"Exceso de masa estimado: {B:.2f}\nFalta de masa estimada:
 
 plt.tight_layout()
 plt.show()
+
 
 
 # VALIDACIONES
