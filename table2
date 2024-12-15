@@ -1,0 +1,38 @@
+import pandas as pd
+import numpy as np
+
+variables_interes = [f'DIV_P_{anio}' for anio in range(2008, 2013)]+[f'PATR_L_{anio}' for anio in range(2008, 2013)]
+
+# Filtrar rango para los patrimonios líquidos y consolidar los datos
+df_filtrado = pd.DataFrame()
+
+for anio in range(2008, 2013):
+    columna_patrimonio = f'PATR_L_{anio}'
+    columna_dividendos = f'DIV_P_{anio}'
+    
+    # Filtrar por el rango de patrimonios líquidos
+    df_anio = df_merged_final2[
+        (df_merged_final2[columna_patrimonio] >= 500000) & 
+        (df_merged_final2[columna_patrimonio] <= 1500000)
+    ][[columna_patrimonio, columna_dividendos]]
+    
+    # columnas filtradas al DataFrame consolidado
+    df_filtrado = pd.concat([df_filtrado, df_anio], axis=1)
+
+# tabla de correlación
+corr_matrix = df_filtrado.corr()
+
+#  máscara para mostrar solo la parte inferior (sin duplicados)
+mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+
+# máscara para ocultar valores repetidos
+tabla_correlacion_sin_repeticiones = corr_matrix.mask(mask)
+
+# Limpiar tabla
+df_correlacion_limpia = (
+    tabla_correlacion_sin_repeticiones.dropna(how='all', axis=0)
+    .dropna(how='all', axis=1)
+    .fillna('')
+)
+df_correlacion_limpia = pd.DataFrame(df_correlacion_limpia)
+df_correlacion_limpia
