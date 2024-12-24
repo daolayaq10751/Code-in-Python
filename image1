@@ -1,3 +1,4 @@
+# @title
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -37,4 +38,3 @@ axes[-1].axis('off')
 
 plt.tight_layout()
 plt.show()
-
