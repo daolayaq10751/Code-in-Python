@@ -91,7 +91,7 @@ plt.axvline(x=umbral, color='red', linestyle='--', linewidth=2.5, alpha=0.7, lab
 plt.axvline(x=debajo_Umbral, color='green', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^l$: {int(debajo_Umbral/ 1000)}M ± {error_izquierda:.3f}")
 plt.axvline(x=despues_Umbral, color='orange', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^u$: {int(despues_Umbral / 1000)}M ± {error_derecha:.3f}")
 # Tasa impositiva
-plt.text(umbral + 25000, max(density) * 0.9, f"$\\tau$ = {tau*100:.0f}%", color='red', fontsize=12)
+plt.text(umbral + 10000, max(density) * 0.9, f"$\\tau$ = {tau*100:.0f}%", color='red', fontsize=12)
 
 # leyendas de la gráfica
 plt.title("Análisis Distribución de Firmas (2010)", fontsize=14, fontweight='bold')
