@@ -6,13 +6,13 @@ from sklearn.linear_model import LinearRegression
 bins = np.arange(500000, 1500001, 10000)
 umbral_principal = 1000000
 
-# Posición de umbrales
+# Posición de umbrales con valores decimales permitidos
 umbrales_por_año = {
-    2008: {'debajoUmbral': 1, 'despuesUmbral': 4},
-    2009: {'debajoUmbral': 5, 'despuesUmbral': 8},
+    2008: {'debajoUmbral': 1, 'despuesUmbral': 4.5},
+    2009: {'debajoUmbral': 5, 'despuesUmbral': 8.6},
     2010: {'debajoUmbral': 6, 'despuesUmbral': 6},
-    2011: {'debajoUmbral': 3, 'despuesUmbral': 0},
-    2012: {'debajoUmbral': 2, 'despuesUmbral': 0}
+    2011: {'debajoUmbral': 4, 'despuesUmbral': 8.7},
+    2012: {'debajoUmbral': 2, 'despuesUmbral': 0.6}
 }
 
 # Función para trazar las líneas de tendencia y distribución contrafactual
@@ -39,21 +39,20 @@ def trazar_histograma(ax, year, df, bins, umbral_principal):
     # Graficar la línea de distribución contrafactual (ajustada)
     ax.plot(bin_centers, counterfactual, color='blue', linestyle='-', linewidth=2, label="Distribución Contrafactual", alpha=0.5)
 
-    # Configuración de las líneas verticales para los umbrales
+    # Graficar la línea del umbral principal
     ax.axvline(x=umbral_principal, color='red', linestyle='--', linewidth=2.5, alpha=0.7, label=f"Umbral Principal: {int(umbral_principal / 1000)}M")
 
-    # Obtener las posiciones de los umbrales antes y después
+    # Calcular las posiciones exactas de los umbrales, con decimales
     bin_width = bin_edges[1] - bin_edges[0]
-    umbral_idx = np.digitize(umbral_principal, bin_centers)
-    exclude_left = umbral_idx - umbrales_por_año[year]['debajoUmbral']
-    exclude_right = umbral_idx + umbrales_por_año[year]['despuesUmbral']
+    umbral_idx = np.searchsorted(bin_centers, umbral_principal)
 
-    debajo_Umbral = bin_centers[exclude_left]
-    despues_Umbral = bin_centers[exclude_right]
+    # Calcular las posiciones de los umbrales (debajo y después) con interpolación correcta
+    debajo_Umbral = bin_centers[umbral_idx] - (umbrales_por_año[year]['debajoUmbral'] * bin_width)
+    despues_Umbral = bin_centers[umbral_idx] + (umbrales_por_año[year]['despuesUmbral'] * bin_width)
 
     # Graficar las líneas para los umbrales antes y después
-    ax.axvline(x=debajo_Umbral, color='grey', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^l$: {int(debajo_Umbral / 1000)}M")
-    ax.axvline(x=despues_Umbral, color='grey', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^n$: {int(despues_Umbral / 1000)}M")
+    ax.axvline(x=debajo_Umbral, color='grey', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^l$: {debajo_Umbral:.2f}")
+    ax.axvline(x=despues_Umbral, color='grey', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^n$: {despues_Umbral:.2f}")
 
     # Título, etiquetas y leyenda
     ax.set_title(f"Distribución de Firmas - Año {year}", fontsize=14, fontweight='bold')
@@ -83,3 +82,5 @@ axes[-1].axis('off')
 
 plt.tight_layout()
 plt.show()
+
+
