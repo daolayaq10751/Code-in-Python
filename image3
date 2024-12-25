@@ -3,14 +3,14 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
-# Definir los rangos 
-bins = np.arange(500000, 1500001, 10000) 
+# Definir los rangos
+bins = np.arange(500000, 1500001, 10000)
 
 # Parámetros clave
-umbral_principal = 1000000 
-dtau = 0.01 
+umbral = 1000000
+dtau = 0.01
 
-def calcular_masas(df, patr_column, bins, umbral_principal):
+def calcular_masas(df, patr_column, bins, umbral):
     # Filtrar datos
     df_filtered = df[(df[patr_column] >= 500000) & (df[patr_column] <= 1500000)]
 
@@ -23,9 +23,9 @@ def calcular_masas(df, patr_column, bins, umbral_principal):
 
     # Identificar índices de bins excluidos
     bin_width = bin_edges[1] - bin_edges[0]
-    umbral_idx = np.digitize(umbral_principal, bin_centers)
-    exclude_left = umbral_idx - 6  # Excluir 5 bins a la izquierda
-    exclude_right = umbral_idx + 2  # Excluir 2 bins a la derecha
+    umbral_idx = np.digitize(umbral, bin_centers)
+    exclude_left = umbral_idx - 6  # Excluir 6 bins a la izquierda
+    exclude_right = umbral_idx + 6  # Excluir 6 bins a la derecha
 
     # Crear una variable para marcar exclusión
     exclude_mask = np.zeros_like(bin_centers, dtype=bool)
@@ -43,8 +43,8 @@ def calcular_masas(df, patr_column, bins, umbral_principal):
 
     # Calcular masas excedentes y faltantes
     extra_density = density - counterfactual
-    B = extra_density[bin_centers < umbral_principal].sum() * bin_width
-    M = extra_density[bin_centers > umbral_principal].sum() * bin_width
+    B = extra_density[bin_centers < umbral].sum() * bin_width
+    M = extra_density[bin_centers > umbral].sum() * bin_width
 
     return density, counterfactual, B, M, bin_centers, bin_width, exclude_left, exclude_right, exclude_mask
 
@@ -65,8 +65,8 @@ density, counterfactual, B, M, bin_centers, bin_width, exclude_left, exclude_rig
 e_R, dW_star = calcular_elasticidad(B, M, W_star, tau, dtau)
 
 # Calcular márgenes de error para umbrales
-umbral_izquierda = bin_centers[exclude_left]
-umbral_derecha = bin_centers[exclude_right]
+debajo_Umbral = bin_centers[exclude_left]
+despues_Umbral = bin_centers[exclude_right]
 
 # Márgenes de error
 error_izquierda = np.std(density[:exclude_left])  # Margen de error estimado
@@ -87,12 +87,11 @@ plt.plot(bin_centers[umbral_idx:], density[umbral_idx:], color='#555555', marker
 plt.plot(bin_centers, counterfactual, color='blue', linestyle='-', alpha=0.4, label="Distribución Contrafactual")
 
 # Umbrales
-plt.axvline(x=umbral_principal, color='red', linestyle='--', linewidth=2.5, alpha=0.7, label=f"Umbral: {int(umbral_principal / 1000)}M")
-plt.axvline(x=umbral_izquierda, color='green', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^n$: {int(umbral_izquierda / 1000)}M ± {error_izquierda:.3f}")
-plt.axvline(x=umbral_derecha, color='orange', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^l$: {int(umbral_derecha / 1000)}M ± {error_derecha:.3f}")
-
+plt.axvline(x=umbral, color='red', linestyle='--', linewidth=2.5, alpha=0.7, label=f"Umbral: {int(umbral/ 1000)}M")
+plt.axvline(x=despues_Umbral, color='orange', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^l$: {int(despues_Umbral / 1000)}M ± {error_derecha:.3f}")
+plt.axvline(x=debajo_Umbral, color='green', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^u$: {int(debajo_Umbral/ 1000)}M ± {error_izquierda:.3f}")
 # Tasa impositiva
-plt.text(umbral_principal + 25000, max(density) * 0.9, f"$\\tau$ = {tau*100:.0f}%", color='red', fontsize=12)
+plt.text(umbral + 25000, max(density) * 0.9, f"$\\tau$ = {tau*100:.0f}%", color='red', fontsize=12)
 
 # leyendas de la gráfica
 plt.title("Análisis Distribución de Firmas (2010)", fontsize=14, fontweight='bold')
@@ -104,8 +103,8 @@ plt.legend()
 plt.grid(alpha=0.3)
 
 plt.text(0.01, 0.02, f"Exceso de masa estimado: {B:.2f}\nFalta de masa estimada: {M:.2f}\nElasticidad estimada: {e_R:.4f}\nCambio en la Riqueza Reportada ($dW^*$): {dW_star:.2f}\nb = {b:.2f}\na* = {a_star:.2f}",
-         transform=plt.gca().transAxes, 
-         ha='left', va='bottom', 
+         transform=plt.gca().transAxes,
+         ha='left', va='bottom',
          bbox=dict(facecolor='white', alpha=0.5))
 
 
@@ -113,33 +112,31 @@ plt.tight_layout()
 plt.show()
 
 
-
-# VALIDACIONES
+OTROS CÁLCULOS: 
 print("Media contrafactual:", np.mean(counterfactual[~exclude_mask]))
 print("Exceso de masa (B):", B)
 print("Densidad contrafactual completa:", counterfactual)
 
-
 RESULTADOS:
-Media contrafactual: 0.005443956043956043
-Exceso de masa (B): 202.99875917326452
-Densidad contrafactual completa: [0.00956176 0.00949443 0.00942535 0.00935456 0.00928207 0.0092079
- 0.00913208 0.00905463 0.00897558 0.00889496 0.00881281 0.00872914
- 0.008644   0.00855743 0.00846945 0.00838012 0.00828947 0.00819754
- 0.00810439 0.00801005 0.00791458 0.00781802 0.00772042 0.00762185
- 0.00752235 0.00742198 0.0073208  0.00721887 0.00711625 0.00701299
- 0.00690918 0.00680487 0.00670013 0.00659503 0.00648964 0.00638403
- 0.00627828 0.00617247 0.00606666 0.00596094 0.00585538 0.00575008
- 0.00564511 0.00554055 0.0054365  0.00533303 0.00523025 0.00512823
- 0.00502707 0.00492687 0.00482771 0.0047297  0.00463293 0.0045375
- 0.00444351 0.00435106 0.00426026 0.0041712  0.004084   0.00399876
- 0.00391559 0.00383459 0.00375589 0.00367959 0.0036058  0.00353465
- 0.00346624 0.00340069 0.00333812 0.00327866 0.00322242 0.00316952
- 0.00312009 0.00307425 0.00303213 0.00299386 0.00295956 0.00292937
- 0.00290341 0.00288181 0.00286472 0.00285225 0.00284456 0.00284177
- 0.00284402 0.00285145 0.0028642  0.00288241 0.00290623 0.00293579
- 0.00297124 0.00301272 0.00306038 0.00311437 0.00317484 0.00324193
- 0.0033158  0.00339659 0.00348446 0.00357956]
+Media contrafactual: 0.005509195402298847
+Exceso de masa (B): 162.19004012160732
+Densidad contrafactual completa: [0.00906759 0.00903156 0.00899384 0.00895439 0.00891319 0.0088702
+ 0.00882541 0.00877879 0.00873031 0.00867997 0.00862774 0.0085736
+ 0.00851754 0.00845955 0.00839963 0.00833776 0.00827394 0.00820817
+ 0.00814046 0.00807079 0.00799919 0.00792566 0.00785022 0.00777287
+ 0.00769364 0.00761255 0.00752963 0.00744489 0.00735839 0.00727014
+ 0.0071802  0.00708859 0.00699538 0.0069006  0.00680432 0.00670658
+ 0.00660747 0.00650703 0.00640534 0.00630248 0.00619852 0.00609355
+ 0.00598765 0.00588093 0.00577347 0.00566539 0.00555677 0.00544775
+ 0.00533844 0.00522895 0.00511941 0.00500997 0.00490075 0.0047919
+ 0.00468358 0.00457592 0.0044691  0.00436327 0.00425862 0.00415532
+ 0.00405355 0.0039535  0.00385537 0.00375936 0.00366568 0.00357454
+ 0.00348616 0.00340078 0.00331862 0.00323993 0.00316495 0.00309394
+ 0.00302716 0.00296488 0.00290737 0.00285492 0.00280781 0.00276635
+ 0.00273084 0.00270158 0.00267891 0.00266315 0.00265462 0.00265369
+ 0.00266069 0.00267598 0.00269993 0.00273292 0.00277533 0.00282755
+ 0.00288998 0.00296303 0.00304711 0.00314265 0.00325008 0.00336985
+ 0.00350241 0.00364821 0.00380773 0.00398145]
 
 
 
