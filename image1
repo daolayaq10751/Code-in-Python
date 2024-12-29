@@ -1,40 +1,73 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
-# Parámetros globales
-bins = np.arange(500000, 1500001, 10000)
-umbral_principal = 1000000
+# Define bins
+bins = np.arange(500000, 1510000, 10000)
 
-# Función para trazar histogramas individuales
-def trazar_histograma(ax, year, df, bins, umbral_principal):
-    patr_column = f'PATR_L_{year}'
-    df_filtered = df[(df[patr_column] >= 500000) & (df[patr_column] <= 1500000)]
+# Set the threshold value
+umbral = 1000000  # Example threshold in pesos
 
-    counts, bin_edges, _ = ax.hist(df_filtered[patr_column], bins=bins, alpha=0.8, color='#666666', edgecolor='black', linewidth=0.5)
+# Lists to store results
+all_counts = []
+all_bin_centers = []
+total_firms = []
 
-    # Líneas verticales para los umbrales
-    ax.axvline(x=umbral_principal, color='#333333', linestyle='--', linewidth=2.5, label=f"Umbral: {int(umbral_principal / 1000)}M")
-
-
-    # Configuración del gráfico
-    ax.set_title(f"Distribución de Firmas - Año {year}", fontsize=14, fontweight='bold')
-    ax.set_xlabel("Patrimonio Líquido (Millones de pesos COP)", fontsize=12)
-    ax.set_ylabel("Concentración de Firmas", fontsize=12)
-    ax.set_xticks(np.arange(500000, 1500001, 100000))
-    ax.set_xticklabels([f"{i}M" for i in range(500, 1501, 100)])
-    ax.legend()
-    ax.grid(axis='y', linestyle='--', alpha=0.7)
-
-# matriz para organizar el conjunto de gráficos
+# Create the figure with subplots
 fig, axes = plt.subplots(3, 2, figsize=(18, 15))
 axes = axes.flatten()
 
+# Process the data by year
 for idx, year in enumerate(range(2008, 2013)):
-    trazar_histograma(axes[idx], year, df_merged_final2, bins, umbral_principal)
+    patr_column = f'PATR_L_{year}'
 
-# Eliminar último cuadro vacío de la matriz
+    # Filter the data in the specified range
+    df_filtered = df_merged_final2[(df_merged_final2[patr_column] >= 500000) &
+                                   (df_merged_final2[patr_column] <= 1500000)]
+
+    # Calculate histogram
+    counts, bin_edges = np.histogram(df_filtered[patr_column], bins=bins)
+    bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+
+    # Store results
+    total_firms.append(len(df_filtered))
+    all_counts.append(counts.tolist())
+    all_bin_centers.append([int(b) for b in bin_edges[:-1]])  # Show initial bin edges
+
+    # Plot the histogram in the subplots with grey color and black borders
+    ax = axes[idx]
+    ax.bar(bin_centers, counts, width=9000, alpha=0.7, color='#555555', edgecolor='black', linewidth=0.5)
+    ax.set_xlabel(f"Net wealth (in {year} million pesos)", fontsize=12)
+    ax.set_ylabel("Frequency", fontsize=12)
+    ax.set_xticks(np.arange(500000, 1500001, 100000))
+    ax.set_xticklabels([f"{i}M" for i in range(500, 1501, 100)], fontsize=10)
+    ax.grid(True, linestyle='--', alpha=0.6)
+
+    # Add vertical line for the threshold and the legend
+    ax.axvline(x=umbral, color='#333333', linestyle='--', label=f"Threshold: {int(umbral / 1000)}M")
+
+    # Add legend
+    ax.legend()
+
+# Remove the sixth plot
 axes[-1].axis('off')
 
+# Adjust layout and display the plots
 plt.tight_layout()
 plt.show()
 
+# Show detailed results by year
+for idx, year in enumerate(range(2008, 2013)):
+    print(f"\nYear {year}:")
+
+    # Total number of firms in the 500M to 1500M range
+    print(f"  Total number of firms in the range of 500M to 1500M: {total_firms[idx]}")
+
+    # Concentration of firms in each bin
+    print(f"  Concentration of firms in each bin:")
+    for i in range(0, len(all_counts[idx]), 10):
+        print(f"    {all_counts[idx][i:i+10]}")
+
+    # Net wealth ranges in each bin (in thousands of pesos)
+    print(f"  Net wealth ranges in each bin (in thousands of pesos):")
+    for i in range(0, len(all_bin_centers[idx]), 10):
+        print(f"    {all_bin_centers[idx][i:i+10]}")
