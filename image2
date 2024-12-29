@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 
 # Parámetros globales
 bins = np.arange(500000, 1500001, 10000)
-umbral_principal = 1000000
+umbral = 1000000
 
 # Posición de umbrales con valores decimales permitidos
 umbrales_por_año = {
@@ -16,7 +16,7 @@ umbrales_por_año = {
 }
 
 # Función para trazar las líneas de tendencia y distribución contrafactual
-def trazar_histograma(ax, year, df, bins, umbral_principal):
+def trazar_histograma(ax, year, df, bins, umbral):
     patr_column = f'PATR_L_{year}'
     df_filtered = df[(df[patr_column] >= 500000) & (df[patr_column] <= 1500000)]
 
@@ -34,30 +34,29 @@ def trazar_histograma(ax, year, df, bins, umbral_principal):
     counterfactual = reg.predict(X)  # Predicción de la distribución contrafactual
 
     # Graficar la línea de tendencia
-    ax.plot(bin_centers, counts, color='#444444', marker='.', linestyle='-', linewidth=1.5, markersize=6, label="Línea de Tendencia")
+    ax.plot(bin_centers, counts, color='#444444', marker='.', linestyle='-', linewidth=1.5, markersize=6, label="Data trend")
 
     # Graficar la línea de distribución contrafactual (ajustada)
-    ax.plot(bin_centers, counterfactual, color='blue', linestyle='-', linewidth=2, label="Distribución Contrafactual", alpha=0.5)
+    ax.plot(bin_centers, counterfactual, color='blue', linestyle='-', linewidth=2, label="Counterfactual distribution", alpha=0.5)
 
     # Graficar la línea del umbral principal
-    ax.axvline(x=umbral_principal, color='red', linestyle='--', linewidth=2.5, alpha=0.7, label=f"Umbral Principal: {int(umbral_principal / 1000)}M")
+    ax.axvline(x=umbral, color='red', linestyle='--', linewidth=1.5, alpha=0.7, label= f"Threshold: {umbral/1000:.0f}M")
 
     # Calcular las posiciones exactas de los umbrales, con decimales
     bin_width = bin_edges[1] - bin_edges[0]
-    umbral_idx = np.searchsorted(bin_centers, umbral_principal)
+    umbral_idx = np.searchsorted(bin_centers, umbral)
 
     # Calcular las posiciones de los umbrales (debajo y después) con interpolación correcta
     debajo_Umbral = bin_centers[umbral_idx] - (umbrales_por_año[year]['debajoUmbral'] * bin_width)
     despues_Umbral = bin_centers[umbral_idx] + (umbrales_por_año[year]['despuesUmbral'] * bin_width)
 
     # Graficar las líneas para los umbrales antes y después
-    ax.axvline(x=debajo_Umbral, color='grey', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^l$: {debajo_Umbral:.2f}")
-    ax.axvline(x=despues_Umbral, color='grey', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^n$: {despues_Umbral:.2f}")
+    ax.axvline(x=debajo_Umbral, color='grey', linestyle='--', linewidth=1.5, label=f"$W_r^l$: {debajo_Umbral/1000:.0f}M")
+    ax.axvline(x=despues_Umbral, color='green', alpha=0.5, linestyle='--', linewidth=1.5, label=f"$W_r^u$: {despues_Umbral/1000:.0f}M")
 
     # Título, etiquetas y leyenda
-    ax.set_title(f"Distribución de Firmas - Año {year}", fontsize=14, fontweight='bold')
-    ax.set_xlabel("Patrimonio Líquido (Millones de pesos COP)", fontsize=12)
-    ax.set_ylabel("Concentración de Firmas", fontsize=12)
+    ax.set_xlabel(f"Net wealth (in {year} million pesos)", fontsize=12)
+    ax.set_ylabel("Frequency", fontsize=12)
 
     # Etiquetas del eje X
     ax.set_xticks(np.arange(500000, 1500001, 100000))
@@ -75,12 +74,10 @@ axes = axes.flatten()
 
 # Graficar para cada año
 for idx, year in enumerate(range(2008, 2013)):
-    trazar_histograma(axes[idx], year, df_merged_final2, bins, umbral_principal)
+    trazar_histograma(axes[idx], year, df_merged_final2, bins, umbral)
 
 # Eliminar la última subgráfica vacía
 axes[-1].axis('off')
 
 plt.tight_layout()
 plt.show()
-
-
