@@ -5,172 +5,170 @@ firms_belowUmbral = {}
 firms_despuesUmbral = {}
 
 all_data = []
-totals = {'Year': [], 'Firmas debajoUmbral': [], 'Firmas despuesUmbral': []}
+totals = {'Year': [], 'Firms below Threshold': [], 'Firms after Threshold': []}
 
-# Procesar cada año
+# Process each year
 for year in range(2008, 2013):
     patr_column = f'PATR_L_{year}'
 
-    # Filtrar valores dentro del rango de interés
+    # Filter values within the range of interest
     df_filtered = df_merged_final2[(df_merged_final2[patr_column] >= 500000) &
                                    (df_merged_final2[patr_column] <= 1500000)]
 
-    # Calcular los umbrales dinámicos
+    # Calculate dynamic thresholds
     bin_centers = 0.5 * (bins[1:] + bins[:-1])
     bin_width = bins[1] - bins[0]
-    umbral_idx = np.digitize(umbral_principal, bin_centers)
+    umbral_idx = np.digitize(umbral, bin_centers)
 
-    # Validar índices de umbrales para evitar errores fuera de rango
+    # Validate threshold indices to avoid out-of-range errors
     umbral_debajo_idx = max(0, umbral_idx - umbrales_por_año[year]['debajoUmbral'])
     umbral_despues_idx = min(len(bin_centers) - 1, umbral_idx + umbrales_por_año[year]['despuesUmbral'])
 
-    # Usar np.interp() para interpolar los valores de los umbrales en lugar de acceder a los índices directamente
+    # Use np.interp() to interpolate threshold values instead of accessing indices directly
     umbral_debajo = np.interp(umbral_debajo_idx, np.arange(len(bin_centers)), bin_centers)
     umbral_despues = np.interp(umbral_despues_idx, np.arange(len(bin_centers)), bin_centers)
 
-    # Diagnóstico: imprimir los umbrales calculados
-    print(f"Año {year}: umbral_debajo={umbral_debajo}, umbral_principal={umbral_principal}, umbral_despues={umbral_despues}")
+    # Diagnostic: print calculated thresholds
+    print(f"Year {year}: umbral_below={umbral_debajo}, umbral_main={umbral}, umbral_after={umbral_despues}")
 
-    # Filtrar firmas por ubicación respecto a los umbrales
+    # Filter firms by location relative to the thresholds
     firms_below = df_filtered[(df_filtered[patr_column] >= umbral_debajo) &
-                              (df_filtered[patr_column] < umbral_principal)]
+                              (df_filtered[patr_column] < umbral)]
 
-    firms_above = df_filtered[(df_filtered[patr_column] > umbral_principal) &
+    firms_above = df_filtered[(df_filtered[patr_column] > umbral) &
                               (df_filtered[patr_column] <= umbral_despues)]
 
-    # Almacenar los NITs en los diccionarios
-    firms_belowUmbral[year] = firms_below[['NIT', patr_column]].copy()  # Incluir patrimonio líquido
-    firms_despuesUmbral[year] = firms_above[['NIT', patr_column]].copy()  # Incluir patrimonio líquido
+    # Store NITs in dictionaries
+    firms_belowUmbral[year] = firms_below[['NIT', patr_column]].copy()  # Include liquid assets
+    firms_despuesUmbral[year] = firms_above[['NIT', patr_column]].copy()  # Include liquid assets
 
-    # Crear y agregar DataFrame del año actual
+    # Create and add DataFrame for the current year
     firms_left = firms_belowUmbral[year]
     firms_right = firms_despuesUmbral[year]
 
-    # Combinar los datos y agregar la columna 'Ubicación'
+    # Combine data and add 'Location' column
     all_data.append(pd.DataFrame({
         'Year': [year] * (len(firms_left) + len(firms_right)),
         'NIT': firms_left['NIT'].tolist() + firms_right['NIT'].tolist(),
-        'Patrimonio Líquido': firms_left[patr_column].tolist() + firms_right[patr_column].tolist(),
-        'Ubicación': ['Debajo del Umbral'] * len(firms_left) + ['Después del Umbral'] * len(firms_right)
+        'Liquid Assets': firms_left[patr_column].tolist() + firms_right[patr_column].tolist(),
+        'Location': ['Below Threshold'] * len(firms_left) + ['Above Threshold'] * len(firms_right)
     }))
 
-    # Agregar totales al resumen
+    # Add totals to summary
     totals['Year'].append(year)
-    totals['Firmas debajoUmbral'].append(len(firms_left))
-    totals['Firmas despuesUmbral'].append(len(firms_right))
+    totals['Firms below Threshold'].append(len(firms_left))
+    totals['Firms after Threshold'].append(len(firms_right))
 
-# Mostrar DataFrames por año con patrimonio líquido
+# Display DataFrames by year with liquid assets
 for df_year in all_data:
-    print(f"\nDataFrame para el periodo {df_year['Year'].iloc[0]}:")
+    print(f"\nDataFrame for the period {df_year['Year'].iloc[0]}:")
     print(df_year)
 
-# Crear y mostrar el DataFrame de totales por año
+# Create and display the totals DataFrame by year
 totals_df = pd.DataFrame(totals)
-print("\nTotales por rango y periodo:")
+print("\nTotals by range and period:")
 print(totals_df)
 
-# Calcular y mostrar totales globales
-print(f"\nTotal de firmas debajo del Umbral: {totals_df['Firmas debajoUmbral'].sum()}")
-print(f"Total de firmas después del Umbral: {totals_df['Firmas despuesUmbral'].sum()}")
+# Calculate and display global totals
+print(f"\nTotal firms below the Threshold: {totals_df['Firms below Threshold'].sum()}")
+print(f"Total firms after the Threshold: {totals_df['Firms after Threshold'].sum()}")
 
 
-  RESULTADOS rango 500 A 1500 millones: 
+RESULTADOS:
 
-  Año 2008: umbral_debajo=995000.0, umbral_principal=1000000, umbral_despues=1050000.0
-Año 2009: umbral_debajo=955000.0, umbral_principal=1000000, umbral_despues=1091000.0
-Año 2010: umbral_debajo=945000.0, umbral_principal=1000000, umbral_despues=1065000.0
-Año 2011: umbral_debajo=965000.0, umbral_principal=1000000, umbral_despues=1092000.0
-Año 2012: umbral_debajo=985000.0, umbral_principal=1000000, umbral_despues=1011000.0
+Year 2008: umbral_below=995000.0, umbral_main=1000000, umbral_after=1050000.0
+Year 2009: umbral_below=955000.0, umbral_main=1000000, umbral_after=1091000.0
+Year 2010: umbral_below=945000.0, umbral_main=1000000, umbral_after=1065000.0
+Year 2011: umbral_below=965000.0, umbral_main=1000000, umbral_after=1092000.0
+Year 2012: umbral_below=985000.0, umbral_main=1000000, umbral_after=1011000.0
 
-DataFrame para el periodo 2008:
-     Year        NIT  Patrimonio Líquido           Ubicación
-0    2008  800081707            999334.0   Debajo del Umbral
-1    2008  800101289            995729.0   Debajo del Umbral
-2    2008  800145838            998461.0   Debajo del Umbral
-3    2008  800217590            995181.0   Debajo del Umbral
-4    2008  802018809            999752.0   Debajo del Umbral
-..    ...        ...                 ...                 ...
-154  2008  891303639           1041864.0  Después del Umbral
-155  2008  900009849           1043868.0  Después del Umbral
-156  2008  900021701           1018817.0  Después del Umbral
-157  2008  900084772           1022976.0  Después del Umbral
-158  2008  900114584           1039029.0  Después del Umbral
+DataFrame for the period 2008:
+     Year        NIT  Liquid Assets         Location
+0    2008  800081707       999334.0  Below Threshold
+1    2008  800101289       995729.0  Below Threshold
+2    2008  800145838       998461.0  Below Threshold
+3    2008  800217590       995181.0  Below Threshold
+4    2008  802018809       999752.0  Below Threshold
+..    ...        ...            ...              ...
+154  2008  891303639      1041864.0  Above Threshold
+155  2008  900009849      1043868.0  Above Threshold
+156  2008  900021701      1018817.0  Above Threshold
+157  2008  900084772      1022976.0  Above Threshold
+158  2008  900114584      1039029.0  Above Threshold
 
 [159 rows x 4 columns]
 
-DataFrame para el periodo 2009:
-     Year        NIT  Patrimonio Líquido           Ubicación
-0    2009  800001822            989423.0   Debajo del Umbral
-1    2009  800003776            996630.0   Debajo del Umbral
-2    2009  800007370            961044.0   Debajo del Umbral
-3    2009  800018301            995601.0   Debajo del Umbral
-4    2009  800021205            994219.0   Debajo del Umbral
-..    ...        ...                 ...                 ...
-625  2009  900179561           1088042.0  Después del Umbral
-626  2009  900190236           1041063.0  Después del Umbral
-627  2009  900208746           1011015.0  Después del Umbral
-628  2009  900233274           1001640.0  Después del Umbral
-629  2009  900251269           1090575.0  Después del Umbral
+DataFrame for the period 2009:
+     Year        NIT  Liquid Assets         Location
+0    2009  800001822       989423.0  Below Threshold
+1    2009  800003776       996630.0  Below Threshold
+2    2009  800007370       961044.0  Below Threshold
+3    2009  800018301       995601.0  Below Threshold
+4    2009  800021205       994219.0  Below Threshold
+..    ...        ...            ...              ...
+625  2009  900179561      1088042.0  Above Threshold
+626  2009  900190236      1041063.0  Above Threshold
+627  2009  900208746      1011015.0  Above Threshold
+628  2009  900233274      1001640.0  Above Threshold
+629  2009  900251269      1090575.0  Above Threshold
 
 [630 rows x 4 columns]
 
-DataFrame para el periodo 2010:
-     Year        NIT  Patrimonio Líquido           Ubicación
-0    2010  800001822            994295.0   Debajo del Umbral
-1    2010  800004557            955948.0   Debajo del Umbral
-2    2010  800007238            992093.0   Debajo del Umbral
-3    2010  800011292            979364.0   Debajo del Umbral
-4    2010  800012080            979087.0   Debajo del Umbral
-..    ...        ...                 ...                 ...
-717  2010  900183183           1033762.0  Después del Umbral
-718  2010  900188767           1057591.0  Después del Umbral
-719  2010  900218736           1034342.0  Después del Umbral
-720  2010  900233274           1009074.0  Después del Umbral
-721  2010  900242012           1053191.0  Después del Umbral
+DataFrame for the period 2010:
+     Year        NIT  Liquid Assets         Location
+0    2010  800001822       994295.0  Below Threshold
+1    2010  800004557       955948.0  Below Threshold
+2    2010  800007238       992093.0  Below Threshold
+3    2010  800011292       979364.0  Below Threshold
+4    2010  800012080       979087.0  Below Threshold
+..    ...        ...            ...              ...
+717  2010  900183183      1033762.0  Above Threshold
+718  2010  900188767      1057591.0  Above Threshold
+719  2010  900218736      1034342.0  Above Threshold
+720  2010  900233274      1009074.0  Above Threshold
+721  2010  900242012      1053191.0  Above Threshold
 
 [722 rows x 4 columns]
 
-DataFrame para el periodo 2011:
-     Year        NIT  Patrimonio Líquido           Ubicación
-0    2011  800003383            980727.0   Debajo del Umbral
-1    2011  800004557            977577.0   Debajo del Umbral
-2    2011  800011292            985561.0   Debajo del Umbral
-3    2011  800014107            983536.0   Debajo del Umbral
-4    2011  800018654            978465.0   Debajo del Umbral
-..    ...        ...                 ...                 ...
-725  2011  900213479           1023846.0  Después del Umbral
-726  2011  900214971           1036892.0  Después del Umbral
-727  2011  900227550           1019984.0  Después del Umbral
-728  2011  900295836           1066624.0  Después del Umbral
-729  2011  900316081           1057249.0  Después del Umbral
+DataFrame for the period 2011:
+     Year        NIT  Liquid Assets         Location
+0    2011  800003383       980727.0  Below Threshold
+1    2011  800004557       977577.0  Below Threshold
+2    2011  800011292       985561.0  Below Threshold
+3    2011  800014107       983536.0  Below Threshold
+4    2011  800018654       978465.0  Below Threshold
+..    ...        ...            ...              ...
+725  2011  900213479      1023846.0  Above Threshold
+726  2011  900214971      1036892.0  Above Threshold
+727  2011  900227550      1019984.0  Above Threshold
+728  2011  900295836      1066624.0  Above Threshold
+729  2011  900316081      1057249.0  Above Threshold
 
 [730 rows x 4 columns]
 
-DataFrame para el periodo 2012:
-     Year        NIT  Patrimonio Líquido           Ubicación
-0    2012  800011292            987884.0   Debajo del Umbral
-1    2012  800013331            995933.0   Debajo del Umbral
-2    2012  800021711            998790.0   Debajo del Umbral
-3    2012  800023435            991908.0   Debajo del Umbral
-4    2012  800023533            987356.0   Debajo del Umbral
-..    ...        ...                 ...                 ...
-143  2012  900115859           1005146.0  Después del Umbral
-144  2012  900165713           1003728.0  Después del Umbral
-145  2012  900227003           1009208.0  Después del Umbral
-146  2012  900329973           1004300.0  Después del Umbral
-147  2012  900354153           1005968.0  Después del Umbral
+DataFrame for the period 2012:
+     Year        NIT  Liquid Assets         Location
+0    2012  800011292       987884.0  Below Threshold
+1    2012  800013331       995933.0  Below Threshold
+2    2012  800021711       998790.0  Below Threshold
+3    2012  800023435       991908.0  Below Threshold
+4    2012  800023533       987356.0  Below Threshold
+..    ...        ...            ...              ...
+143  2012  900115859      1005146.0  Above Threshold
+144  2012  900165713      1003728.0  Above Threshold
+145  2012  900227003      1009208.0  Above Threshold
+146  2012  900329973      1004300.0  Above Threshold
+147  2012  900354153      1005968.0  Above Threshold
 
 [148 rows x 4 columns]
 
-Totales por rango y periodo:
-   Year  Firmas debajoUmbral  Firmas despuesUmbral
-0  2008                   20                   139
-1  2009                  297                   333
-2  2010                  443                   279
-3  2011                  283                   447
-4  2012                  101                    47
+Totals by range and period:
+   Year  Firms below Threshold  Firms after Threshold
+0  2008                     20                    139
+1  2009                    297                    333
+2  2010                    443                    279
+3  2011                    283                    447
+4  2012                    101                     47
 
-Total de firmas debajo del Umbral: 1144
-Total de firmas después del Umbral: 1245
-
-  
+Total firms below the Threshold: 1144
+Total firms after the Threshold: 1245
