@@ -24,8 +24,8 @@ def calcular_masas(df, patr_column, bins, umbral):
     # Identificar índices de bins excluidos
     bin_width = bin_edges[1] - bin_edges[0]
     umbral_idx = np.digitize(umbral, bin_centers)
-    exclude_left = umbral_idx - 6  # Excluir 6 bins a la izquierda
-    exclude_right = umbral_idx + 6  # Excluir 6 bins a la derecha
+    exclude_left = umbral_idx - 6  # Excluir bins a la izquierda
+    exclude_right = umbral_idx + 6  # Excluir bins a la derecha
 
     # Crear una variable para marcar exclusión
     exclude_mask = np.zeros_like(bin_centers, dtype=bool)
@@ -49,17 +49,18 @@ def calcular_masas(df, patr_column, bins, umbral):
     return density, counterfactual, B, M, bin_centers, bin_width, exclude_left, exclude_right, exclude_mask
 
 def calcular_elasticidad(B, M, W_star, tau, dtau):
-    dW_star = B - abs(M)  # Respuesta en la riqueza reportada
-    e_R = ((dW_star / W_star) * ((1 - tau) / dtau))  # Elasticidad revisada
+    # Cálculo de la elasticidad revisada
+    dW_star = B - abs(M)  # Diferencia entre masas excedentes y faltantes
+    e_R = (dW_star / W_star) * (1 - tau) / dtau  # Elasticidad revisada
     return e_R, dW_star
 
 # Parámetros adicionales para el cálculo
-W_star = 1000000  # Aproximación de W*
-tau = 0.01  # Tasa de impuestos inicial del 1%
+W_star = 5000000  # Aproximación de W*
+tau = 0.01  # Tasa de impuestos inicial
 
 # Calcular densidades, masas y contrafactual
 patr_column = 'PATR_L_2010'
-density, counterfactual, B, M, bin_centers, bin_width, exclude_left, exclude_right, exclude_mask = calcular_masas(df_merged_final2, patr_column, bins, umbral_principal)
+density, counterfactual, B, M, bin_centers, bin_width, exclude_left, exclude_right, exclude_mask = calcular_masas(df_merged_final2, patr_column, bins, umbral)
 
 # Estimar elasticidad y respuesta en la riqueza reportada
 e_R, dW_star = calcular_elasticidad(B, M, W_star, tau, dtau)
@@ -72,52 +73,47 @@ despues_Umbral = bin_centers[exclude_right]
 error_izquierda = np.std(density[:exclude_left])  # Margen de error estimado
 error_derecha = np.std(density[exclude_right + 1:])
 
-# Calcular b y a* de manera segura asegurando que las dimensiones coinciden
-b = B / np.mean(counterfactual[~exclude_mask])  # Media de los valores contrafactuales no excluidos
-a_star = np.mean(density[exclude_mask] < counterfactual[exclude_mask])  # Media de la condición de comparación
-
 # Visualización
 plt.figure(figsize=(10, 6))
 
 # Graficar los dos segmentos separados para la línea de tendencia
-plt.plot(bin_centers[:umbral_idx], density[:umbral_idx], color='#555555', marker='.', linestyle='-', label="Línea de Tendencia Observada")
+plt.plot(bin_centers[:umbral_idx], density[:umbral_idx], color='#555555', marker='.', linestyle='-', label="Data trend")
 plt.plot(bin_centers[umbral_idx:], density[umbral_idx:], color='#555555', marker='.', linestyle='-')
 
 # Graficar la línea de densidad contrafactual
-plt.plot(bin_centers, counterfactual, color='blue', linestyle='-', alpha=0.4, label="Distribución Contrafactual")
+plt.plot(bin_centers, counterfactual, color='blue', linestyle='-', alpha=0.4, label="Counterfactual distribution")
 
 # Umbrales
-plt.axvline(x=umbral, color='red', linestyle='--', linewidth=2.5, alpha=0.7, label=f"Umbral: {int(umbral/ 1000)}M")
-plt.axvline(x=debajo_Umbral, color='green', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^l$: {int(debajo_Umbral/ 1000)}M ± {error_izquierda:.3f}")
-plt.axvline(x=despues_Umbral, color='orange', linestyle='--', linewidth=1.5, label=f"Umbral $W_r^u$: {int(despues_Umbral / 1000)}M ± {error_derecha:.3f}")
+plt.axvline(x=umbral, color='red', linestyle='--', linewidth=2.5, alpha=0.7) #label=f"Umbral: {int(umbral/ 1000)}M")
+plt.axvline(x=debajo_Umbral, color='gray', alpha=0.5, linestyle='--', linewidth=1.5, label=f"$W_r^l$: {int(debajo_Umbral/ 1000)}M ± {error_izquierda:.2f}")
+plt.axvline(x=despues_Umbral, color='green', alpha=0.5, linestyle='--', linewidth=1.5, label=f"$W_r^u$: {int(despues_Umbral / 1000)}M ± {error_derecha:.2f}")
 # Tasa impositiva
-plt.text(umbral + 10000, max(density) * 0.9, f"$\\tau$ = {tau*100:.0f}%", color='red', fontsize=12)
+plt.text(umbral + 10000, max(density) * 0.9, f"$\\tau$ = {tau*100:.1f}%", color='red', fontsize=12)
 
-# leyendas de la gráfica
-plt.title("Análisis Distribución de Firmas (2010)", fontsize=14, fontweight='bold')
-plt.xlabel("Patrimonio Líquido (Millones de pesos COP)", fontsize=12)
-plt.ylabel("Concentración de firmas (Bunching)", fontsize=12)
+# Añadir información adicional sobre el análisis
+plt.text(0.01, 0.02, f"\n$b$: {B:.2f}\n$m$: {M:.2f}\n$e_R$: {e_R:.4f}\n$∆W^*$: {dW_star:.2f}\n$a^*$ = {np.mean(density[exclude_mask] < counterfactual[exclude_mask]):.2f}",
+         transform=plt.gca().transAxes, fontsize=12)
+
+# Títulos y etiquetas
+plt.xlabel("Net wealth (in 2010 million pesos)", fontsize=12)
+plt.ylabel("Frequency", fontsize=12)
 plt.xticks(np.arange(500000, 1500001, 100000), [f"{i}M" for i in range(500, 1501, 100)])
-plt.yticks(np.linspace(0, max(density), 6), [f"{int(i)}" for i in np.linspace(0, max(density) * 1000, 6)])
+plt.yticks(np.linspace(0, max(density), 6), [f"{int(i)}" for i in np.linspace(0, max(density), 6)])
+
+# Leyenda
 plt.legend()
-plt.grid(alpha=0.3)
 
-plt.text(0.01, 0.02, f"Exceso de masa estimado: {B:.2f}\nFalta de masa estimada: {M:.2f}\nElasticidad estimada: {e_R:.4f}\nCambio en la Riqueza Reportada ($dW^*$): {dW_star:.2f}\nb = {b:.2f}\na* = {a_star:.2f}",
-         transform=plt.gca().transAxes,
-         ha='left', va='bottom',
-         bbox=dict(facecolor='white', alpha=0.5))
-
-
+# Mostrar la gráfica
 plt.tight_layout()
 plt.show()
 
 
-OTROS CÁLCULOS: 
+OTROS DATOS:
 print("Media contrafactual:", np.mean(counterfactual[~exclude_mask]))
 print("Exceso de masa (B):", B)
 print("Densidad contrafactual completa:", counterfactual)
 
-RESULTADOS:
+RESULTADOS: 
 Media contrafactual: 0.005509195402298847
 Exceso de masa (B): 162.19004012160732
 Densidad contrafactual completa: [0.00906759 0.00903156 0.00899384 0.00895439 0.00891319 0.0088702
@@ -137,8 +133,3 @@ Densidad contrafactual completa: [0.00906759 0.00903156 0.00899384 0.00895439 0.
  0.00266069 0.00267598 0.00269993 0.00273292 0.00277533 0.00282755
  0.00288998 0.00296303 0.00304711 0.00314265 0.00325008 0.00336985
  0.00350241 0.00364821 0.00380773 0.00398145]
-
-
-
-
-
