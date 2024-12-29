@@ -55,7 +55,7 @@ def calcular_elasticidad(B, M, W_star, tau, dtau):
     return e_R, dW_star
 
 # Parámetros adicionales para el cálculo
-W_star = 5000000  # Aproximación de W*
+W_star = 1000000  # Aproximación de W*
 tau = 0.01  # Tasa de impuestos inicial
 
 # Calcular densidades, masas y contrafactual
