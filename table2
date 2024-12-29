@@ -1,38 +1,56 @@
 import pandas as pd
 import numpy as np
 
-variables_interes = [f'DIV_P_{anio}' for anio in range(2008, 2013)]+[f'PATR_L_{anio}' for anio in range(2008, 2013)]
-
-# Filtrar rango para los patrimonios líquidos y consolidar los datos
+# Filtrar el rango para los patrimonios líquidos y consolidar los datos
 df_filtrado = pd.DataFrame()
 
-for anio in range(2008, 2013):
-    columna_patrimonio = f'PATR_L_{anio}'
-    columna_dividendos = f'DIV_P_{anio}'
-    
-    # Filtrar por el rango de patrimonios líquidos
-    df_anio = df_merged_final2[
-        (df_merged_final2[columna_patrimonio] >= 500000) & 
+# Iterar sobre los años de 2008 a 2012 para recoger los datos correspondientes
+for year in range(2008, 2013):
+    columna_patrimonio = f'PATR_L_{year}'  # Nombre de la columna de patrimonio líquido
+    columna_dividendos = f'DIV_P_{year}'  # Nombre de la columna de dividendos
+
+    # Filtrar los datos de patrimonio dentro del rango entre 500,000 y 1,500,000
+    df_anio = df_merged_final2[[
+        columna_patrimonio, columna_dividendos
+    ]][
+        (df_merged_final2[columna_patrimonio] >= 500000) &
         (df_merged_final2[columna_patrimonio] <= 1500000)
-    ][[columna_patrimonio, columna_dividendos]]
-    
-    # columnas filtradas al DataFrame consolidado
+    ]
+
+    # Agregar las columnas filtradas al DataFrame consolidado
     df_filtrado = pd.concat([df_filtrado, df_anio], axis=1)
 
-# tabla de correlación
-corr_matrix = df_filtrado.corr()
+# Crear la tabla de correlación
+corr_matrix = df_filtrado.corr()  # Calcular la matriz de correlación
 
-#  máscara para mostrar solo la parte inferior (sin duplicados)
-mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+# Generar una máscara para mostrar solo la parte inferior de la matriz (sin duplicados)
+mask = np.tril(np.ones_like(corr_matrix, dtype=bool))
 
-# máscara para ocultar valores repetidos
-tabla_correlacion_sin_repeticiones = corr_matrix.mask(mask)
+# Aplicar la máscara para ocultar valores en la parte superior de la matriz
+tabla_correlacion_invertida = corr_matrix.mask(mask)
 
-# Limpiar tabla
+# Limpiar la tabla: eliminar filas y columnas completamente vacías
 df_correlacion_limpia = (
-    tabla_correlacion_sin_repeticiones.dropna(how='all', axis=0)
-    .dropna(how='all', axis=1)
-    .fillna('')
+    tabla_correlacion_invertida.dropna(how='all', axis=0)  # Eliminar filas vacías
+    .dropna(how='all', axis=1)  # Eliminar columnas vacías
+    .fillna('')  # Rellenar valores faltantes con cadenas vacías
 )
+
+# Convertir a DataFrame final y mostrar la tabla de correlación limpia
 df_correlacion_limpia = pd.DataFrame(df_correlacion_limpia)
+
+# Mostrar la tabla de correlación en forma de triángulo invertido
 df_correlacion_limpia
+
+
+RESULTADOS:
+DIV_P_2008	PATR_L_2009	DIV_P_2009	PATR_L_2010	DIV_P_2010	PATR_L_2011	DIV_P_2011	PATR_L_2012	DIV_P_2012
+PATR_L_2008	0.011313	0.799888	0.032686	0.607828	0.034151	0.490927	0.059534	0.402103	0.029358
+DIV_P_2008		-0.003912	0.176697	-0.00708	0.080934	-0.005129	0.032157	-0.006251	0.028224
+PATR_L_2009			-0.003273	0.7653	0.047094	0.609553	0.030077	0.467439	0.045903
+DIV_P_2009				0.030466	0.20659	-0.000832	0.240906	-0.013421	0.159309
+PATR_L_2010					0.023712	0.797544	0.028921	0.621618	0.054412
+DIV_P_2010						-0.001267	0.407531	-0.002709	0.291469
+PATR_L_2011							0.018114	0.771174	0.043199
+DIV_P_2011								-0.006342	0.160146
+PATR_L_2012									0.016501
